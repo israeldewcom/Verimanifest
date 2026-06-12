@@ -1,0 +1,44 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: verimanifest
+      POSTGRES_USER: verimanifest
+      POSTGRES_PASSWORD: verimanifest
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://verimanifest:verimanifest@postgres:5432/verimanifest
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-secret-key
+      JWT_REFRESH_SECRET: dev-refresh-secret
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY: dummy
+      AWS_SECRET_KEY: dummy
+      S3_BUCKET: dummy
+      SMTP_HOST: smtp.example.com
+      SMTP_PORT: 587
+      SMTP_USER: test@example.com
+      SMTP_PASS: test
+      STRIPE_SECRET_KEY: sk_test_...
+      STRIPE_WEBHOOK_SECRET: whsec_...
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:
