@@ -1,0 +1,361 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String    @id @default(uuid())
+  email                 String    @unique
+  password              String
+  firstName             String
+  lastName              String
+  phone                 String?
+  role                  String    @default("user")
+  isActive              Boolean   @default(true)
+  companyId             String
+  company               Company   @relation(fields: [companyId], references: [id])
+  refreshTokens         RefreshToken[]
+  passwordResetToken    String?
+  passwordResetExpiry   DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  assignedManifests     Manifest[] @relation("AssignedDriver")
+}
+
+model Company {
+  id                    String    @id @default(uuid())
+  name                  String
+  type                  String
+  epaId                 String?
+  address               String?
+  city                  String?
+  state                 String?
+  zip                   String?
+  phone                 String?
+  interstateAuthorized  Boolean   @default(false)
+  subscriptionStatus    String    @default("free")
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  isActive              Boolean   @default(true)
+  latitude              Float?
+  longitude             Float?
+  users                 User[]
+  manifests             Manifest[] @relation("CompanyManifests")
+  marketplaceListings   MarketplaceListing[] @relation("GeneratorListings")
+  marketplaceBids       MarketplaceBid[] @relation("TransporterBids")
+  whiteLabel            WhiteLabelConfig?
+  webhooks              Webhook[]
+  apiKeys               APIKey[]
+  apiClients            APIClient[]
+  insurancePolicies     InsurancePolicy[]
+  externalWebhookLogs   ExternalWebhookLog[]
+  syncLogs              SyncLog[]
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model Manifest {
+  id                    String    @id @default(uuid())
+  manifestNumber        String    @unique
+  status                String    @default("draft")
+  wasteType             String
+  wasteClassification   String
+  quantity              Float
+  unit                  String
+  containerType         String
+  containerCount        Int
+  notes                 String?
+  specialInstructions   String?
+  pickupDate            DateTime?
+  generatorId           String
+  generator             Company   @relation("Generator", fields: [generatorId], references: [id])
+  transporterId         String
+  transporter           Company   @relation("Transporter", fields: [transporterId], references: [id])
+  facilityId            String
+  facility              Company   @relation("Facility", fields: [facilityId], references: [id])
+  companyId             String
+  company               Company   @relation("CompanyManifests", fields: [companyId], references: [id])
+  assignedDriverId      String?
+  assignedDriver        User?     @relation("AssignedDriver", fields: [assignedDriverId], references: [id])
+  createdBy             String
+  updatedBy             String?
+  statusNotes           String?
+  legalHold             Boolean   @default(false)
+  legalHoldReason       String?
+  legalHoldRequestedBy  String?
+  legalHoldPlacedAt     DateTime?
+  legalHoldReleasedBy   String?
+  legalHoldReleasedAt   DateTime?
+  signatures            Signature[]
+  pdfs                  ManifestPDF[]
+  events                ManifestEvent[]
+  complianceChecks      ComplianceCheck[]
+  photos                ManifestPhoto[]
+  driverLocations       DriverLocation[]
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  generatorSignedAt     DateTime?
+  transportAcceptedAt   DateTime?
+  inTransitAt           DateTime?
+  facilityReceivedAt    DateTime?
+  disposedAt            DateTime?
+  archivedAt            DateTime?
+}
+
+model Signature {
+  id              String    @id @default(uuid())
+  manifestId      String
+  manifest        Manifest  @relation(fields: [manifestId], references: [id])
+  signerRole      String
+  signedBy        String
+  signatureImage  String?
+  signedAt        DateTime  @default(now())
+  ipAddress       String?
+  geolocation     Json?
+  deviceInfo      Json?
+  createdAt       DateTime  @default(now())
+}
+
+model ManifestPDF {
+  id          String    @id @default(uuid())
+  manifestId  String
+  manifest    Manifest  @relation(fields: [manifestId], references: [id])
+  s3Key       String
+  filename    String
+  generatedAt DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+}
+
+model ManifestEvent {
+  id          String    @id @default(uuid())
+  manifestId  String
+  manifest    Manifest  @relation(fields: [manifestId], references: [id])
+  type        String
+  data        Json
+  userId      String
+  version     Int
+  timestamp   DateTime  @default(now())
+}
+
+model ManifestPhoto {
+  id          String    @id @default(uuid())
+  manifestId  String
+  manifest    Manifest  @relation(fields: [manifestId], references: [id])
+  s3Key       String
+  uploadedBy  String
+  caption     String?
+  createdAt   DateTime  @default(now())
+}
+
+model DriverLocation {
+  id          String    @id @default(uuid())
+  driverId    String
+  driver      User      @relation(fields: [driverId], references: [id])
+  manifestId  String?
+  manifest    Manifest? @relation(fields: [manifestId], references: [id])
+  latitude    Float
+  longitude   Float
+  accuracy    Float?
+  recordedAt  DateTime  @default(now())
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  token     String
+  revoked   Boolean   @default(false)
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+}
+
+model InsurancePolicy {
+  id              String    @id @default(uuid())
+  companyId       String
+  company         Company   @relation(fields: [companyId], references: [id])
+  provider        String
+  policyNumber    String
+  coverageAmount  Float
+  effectiveDate   DateTime
+  expirationDate  DateTime
+  status          String    @default("active")
+  documentS3Key   String?
+  verifiedAt      DateTime?
+  verifiedBy      String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model ComplianceCheck {
+  id          String    @id @default(uuid())
+  manifestId  String
+  manifest    Manifest  @relation(fields: [manifestId], references: [id])
+  compliant   Boolean
+  violations  String[]
+  warnings    String[]
+  suggestions String[]
+  checkedAt   DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+}
+
+model MarketplaceListing {
+  id            String    @id @default(uuid())
+  generatorId   String
+  generator     Company   @relation("GeneratorListings", fields: [generatorId], references: [id])
+  wasteType     String
+  quantity      Float
+  unit          String
+  status        String    @default("open")
+  pickupDate    DateTime
+  location      Json
+  budget        Float?
+  requirements  String?
+  awardedBidId  String?
+  expiresAt     DateTime
+  bids          MarketplaceBid[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model MarketplaceBid {
+  id              String              @id @default(uuid())
+  listingId       String
+  listing         MarketplaceListing  @relation(fields: [listingId], references: [id])
+  transporterId   String
+  transporter     Company             @relation("TransporterBids", fields: [transporterId], references: [id])
+  amount          Float
+  notes           String?
+  status          String              @default("pending")
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+}
+
+model PlatformTransaction {
+  id              String    @id @default(uuid())
+  listingId       String
+  listing         MarketplaceListing  @relation(fields: [listingId], references: [id])
+  bidId           String
+  amount          Float
+  platformFee     Float
+  transporterEarn Float
+  status          String    @default("completed")
+  createdAt       DateTime  @default(now())
+}
+
+model WhiteLabelConfig {
+  id              String    @id @default(uuid())
+  companyId       String    @unique
+  company         Company   @relation(fields: [companyId], references: [id])
+  companyName     String
+  logo            String
+  primaryColor    String
+  secondaryColor  String
+  customDomain    String?
+  emailTemplates  Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Webhook {
+  id          String    @id @default(uuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  url         String
+  events      String[]
+  secret      String
+  isActive    Boolean   @default(true)
+  deliveries  WebhookDelivery[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model WebhookDelivery {
+  id            String    @id @default(uuid())
+  webhookId     String
+  webhook       Webhook   @relation(fields: [webhookId], references: [id])
+  event         String
+  status        String
+  responseCode  Int
+  timestamp     DateTime  @default(now())
+}
+
+model APIKey {
+  id          String    @id @default(uuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  name        String
+  apiKey      String    @unique
+  secret      String
+  permissions String[]
+  isActive    Boolean   @default(true)
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model APIClient {
+  id            String    @id @default(uuid())
+  companyId     String
+  company       Company   @relation(fields: [companyId], references: [id])
+  clientId      String    @unique
+  clientSecret  String
+  webhookUrl    String
+  events        String[]
+  webhookSecret String
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model SLAIncident {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  severity    String
+  status      String    @default("open")
+  duration    Int?
+  timestamp   DateTime  @default(now())
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model HealthCheckResult {
+  id        String    @id @default(uuid())
+  passed    Boolean
+  results   Json
+  timestamp DateTime  @default(now())
+}
+
+model DataSyncLog {
+  id          String    @id @default(uuid())
+  table       String
+  recordCount Int
+  syncedAt    DateTime  @default(now())
+}
+
+model SyncLog {
+  id          String    @id @default(uuid())
+  actionId    String    @unique
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  type        String
+  payload     Json
+  result      Json?
+  error       String?
+  processedAt DateTime  @default(now())
+  status      String
+}
+
+model ExternalWebhookLog {
+  id          String    @id @default(uuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id])
+  payload     Json
+  headers     Json
+  receivedAt  DateTime  @default(now())
+}
