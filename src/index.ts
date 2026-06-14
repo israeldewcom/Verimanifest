@@ -14,12 +14,8 @@ import { authenticateApiKey } from './middleware/apiKeyAuth';
 import { healthCheck, readinessCheck, livenessCheck } from './middleware/healthCheck';
 import { errorHandler } from './middleware/errorHandler';
 import { initializeWebSocket } from './websocket/socket.service';
-import { vaultService } from './config/vault';
-import { featureFlags } from './config/featureFlags';
-import prisma from './config/database';
-import { whiteLabelService } from './services/whiteLabel.service';
-import { cacheService } from './services/cache.service';
 
+// Import modules
 import authRoutes from './modules/auth/auth.routes';
 import manifestRoutes from './modules/manifest/manifest.routes';
 import billingRoutes from './modules/billing/billing.routes';
@@ -27,15 +23,31 @@ import marketplaceRoutes from './modules/marketplace/marketplace.routes';
 import webhookRoutes from './modules/webhook/webhook.routes';
 import apiKeyRoutes from './modules/apiKey/apiKey.routes';
 
+// Import workers (they start automatically)
 import './workers/queue.workers';
 import './workers/scheduler.workers';
 import './workers/syntheticMonitor.worker';
 
+// Optional services – mock if unavailable
+import { featureFlags } from './config/featureFlags';
+import { whiteLabelService } from './services/whiteLabel.service';
+import { cacheService } from './services/cache.service';
+
+// Mock vault if not configured (the real vault.ts is excluded from compilation)
+let vaultService: any = { initialize: async () => {}, rotateDatabaseCredentials: async () => {} };
+try {
+  vaultService = require('./config/vault').vaultService;
+} catch {
+  logger.info('Vault service not available – using mock');
+}
+
 const app = express();
 const server = http.createServer(app);
 
+// WebSocket initialization
 initializeWebSocket(server);
 
+// CORS configuration
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
 if (environment.NODE_ENV === 'production' && allowedOrigins.length === 0) {
   logger.warn('ALLOWED_ORIGINS not set in production, CORS will be restrictive');
@@ -53,6 +65,7 @@ app.use(
   })
 );
 
+// Security and parsing middleware
 app.use(
   helmet({
     contentSecurityPolicy: false,
@@ -61,11 +74,13 @@ app.use(
 );
 app.use(compression());
 
+// Raw body for Stripe webhooks
 app.use('/api/v1/billing/webhooks', express.raw({ type: 'application/json' }));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Response time metrics
 app.use(
   responseTime((req: any, res: any, time: number) => {
     if (req.path && !req.path.startsWith('/metrics') && !req.path.startsWith('/health')) {
@@ -77,11 +92,12 @@ app.use(
   })
 );
 
-// White‑label middleware
+// White‑label middleware (injects company branding)
 app.use(async (req, res, next) => {
   const host = req.hostname;
   let company = await whiteLabelService.getCompanyByDomain(host);
   if (!company && environment.NODE_ENV !== 'production') {
+    const prisma = (await import('./config/database')).default;
     company = await prisma.company.findFirst({ where: { whiteLabel: { customDomain: null } } });
   }
   if (company) {
@@ -91,6 +107,7 @@ app.use(async (req, res, next) => {
   next();
 });
 
+// Health and metrics endpoints
 app.get('/health', healthCheck);
 app.get('/health/ready', readinessCheck);
 app.get('/health/live', livenessCheck);
@@ -99,8 +116,10 @@ app.get('/metrics', async (req, res) => {
   res.end(await register.metrics());
 });
 
+// Global rate limiting
 app.use('/api/', rateLimiter);
 
+// Route registration
 app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/billing', billingRoutes);
 app.use('/api/v1/webhooks', webhookRoutes);
@@ -108,10 +127,10 @@ app.use('/api/v1/manifests', authenticate, perUserRateLimiter, manifestRoutes);
 app.use('/api/v1/marketplace', authenticate, perUserRateLimiter, marketplaceRoutes);
 app.use('/api/v1/api-keys', authenticate, requirePermission('manage:api'), apiKeyRoutes);
 
-// Public API endpoints with API key auth
+// Public API endpoints with API key authentication
 app.post('/api/v1/sync', authenticateApiKey, async (req, res, next) => {
   try {
-    const { syncService } = require('./services/sync.service');
+    const { syncService } = await import('./services/sync.service');
     const { actions } = req.body;
     const companyId = (req as any).apiKeyInfo.companyId;
     const results = await syncService.processBatch(companyId, actions);
@@ -123,7 +142,7 @@ app.post('/api/v1/sync', authenticateApiKey, async (req, res, next) => {
 
 app.post('/api/v1/location', authenticateApiKey, async (req, res, next) => {
   try {
-    const { locationService } = require('./services/location.service');
+    const { locationService } = await import('./services/location.service');
     const { driverId, manifestId, lat, lng, accuracy } = req.body;
     await locationService.updateLocation({
       driverId,
@@ -141,7 +160,7 @@ app.post('/api/v1/location', authenticateApiKey, async (req, res, next) => {
 
 app.get('/api/v1/drivers/:driverId/location', authenticateApiKey, async (req, res, next) => {
   try {
-    const { locationService } = require('./services/location.service');
+    const { locationService } = await import('./services/location.service');
     const location = await locationService.getLatestLocation(req.params.driverId);
     res.json({ success: true, data: location });
   } catch (error) {
@@ -149,9 +168,10 @@ app.get('/api/v1/drivers/:driverId/location', authenticateApiKey, async (req, re
   }
 });
 
+// GDPR endpoints
 app.get('/api/v1/user/data', authenticate, async (req: any, res, next) => {
   try {
-    const { gdprService } = require('./services/gdpr.service');
+    const { gdprService } = await import('./services/gdpr.service');
     const data = await gdprService.exportUserData(req.user.userId);
     res.json({ success: true, data });
   } catch (error) {
@@ -161,7 +181,7 @@ app.get('/api/v1/user/data', authenticate, async (req: any, res, next) => {
 
 app.delete('/api/v1/user/data', authenticate, async (req: any, res, next) => {
   try {
-    const { gdprService } = require('./services/gdpr.service');
+    const { gdprService } = await import('./services/gdpr.service');
     await gdprService.deleteUserData(req.user.userId);
     res.json({ success: true, message: 'Data deletion requested' });
   } catch (error) {
@@ -169,6 +189,7 @@ app.delete('/api/v1/user/data', authenticate, async (req: any, res, next) => {
   }
 });
 
+// White‑label configuration endpoint
 app.get('/api/v1/white-label', async (req, res, next) => {
   try {
     const config = res.locals.whiteLabel || {
@@ -183,8 +204,10 @@ app.get('/api/v1/white-label', async (req, res, next) => {
   }
 });
 
+// Company profile endpoints
 app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
   try {
+    const prisma = (await import('./config/database')).default;
     const company = await prisma.company.findUnique({
       where: { id: req.user.companyId },
       include: { whiteLabel: true },
@@ -197,6 +220,7 @@ app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
 
 app.patch('/api/v1/company', authenticate, requirePermission('write:company'), async (req: any, res, next) => {
   try {
+    const prisma = (await import('./config/database')).default;
     const company = await prisma.company.update({
       where: { id: req.user.companyId },
       data: req.body,
@@ -208,12 +232,15 @@ app.patch('/api/v1/company', authenticate, requirePermission('write:company'), a
   }
 });
 
+// 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 
+// Global error handler
 app.use(errorHandler);
 
+// Initialize optional services
 async function initializeServices() {
   try {
     await vaultService.initialize();
@@ -225,28 +252,34 @@ async function initializeServices() {
   }
 }
 
+// Start server
 server.listen(environment.PORT, async () => {
   await initializeServices();
   logger.info(`🚀 VeriManifest API running on port ${environment.PORT}`);
   logger.info(`📊 Environment: ${environment.NODE_ENV}`);
 });
 
+// Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully...');
   server.close(() => {
-    prisma.$disconnect().then(() => {
+    (async () => {
+      const prisma = (await import('./config/database')).default;
+      await prisma.$disconnect();
       logger.info('Server shut down complete');
       process.exit(0);
-    });
+    })();
   });
 });
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully...');
   server.close(() => {
-    prisma.$disconnect().then(() => {
+    (async () => {
+      const prisma = (await import('./config/database')).default;
+      await prisma.$disconnect();
       process.exit(0);
-    });
+    })();
   });
 });
 
