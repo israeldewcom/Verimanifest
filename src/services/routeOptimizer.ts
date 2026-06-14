@@ -3,14 +3,14 @@ import { environment } from '../config/environment';
 import logger from '../config/logger';
 import prisma from '../config/database';
 
-interface RouteStop {
+export interface RouteStop {
   lat: number;
   lng: number;
   address: string;
   type: 'pickup' | 'delivery' | 'waypoint';
 }
 
-interface OptimizedRoute {
+export interface OptimizedRoute {
   totalDistance: number;
   totalDuration: number;
   waypoints: RouteStop[];
