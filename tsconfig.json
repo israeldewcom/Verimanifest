@@ -11,8 +11,7 @@
     "noEmitOnError": false,
     "noImplicitAny": false,
     "strictNullChecks": false,
-    "noImplicitReturns": false,
-    "suppressImplicitAnyIndexErrors": true
+    "noImplicitReturns": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
