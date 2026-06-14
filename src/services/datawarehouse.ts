@@ -61,10 +61,8 @@ class DataWarehouse {
           const tableObj = dataset.table(table.name.toLowerCase());
           await tableObj.insert(data);
         } else if (this.snowflake) {
-          // Use parameterized queries or batch insert with Snowflake's built-in JSON
           for (const row of data) {
             const sql = `INSERT INTO ${table.name.toLowerCase()} (${Object.keys(row).join(',')}) VALUES (?)`;
-            // Use Snowflake's bind parameters to avoid injection
             await new Promise((resolve, reject) => {
               this.snowflake.execute({
                 sqlText: sql,
