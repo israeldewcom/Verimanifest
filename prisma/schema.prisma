@@ -24,6 +24,7 @@ model User {
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   assignedManifests     Manifest[] @relation("AssignedDriver")
+  driverLocations       DriverLocation[]
 }
 
 model Company {
@@ -44,7 +45,10 @@ model Company {
   latitude              Float?
   longitude             Float?
   users                 User[]
-  manifests             Manifest[] @relation("CompanyManifests")
+  generatorManifests    Manifest[] @relation("Generator")
+  transporterManifests  Manifest[] @relation("Transporter")
+  facilityManifests     Manifest[] @relation("Facility")
+  manifestCompany       Manifest[] @relation("CompanyManifests")
   marketplaceListings   MarketplaceListing[] @relation("GeneratorListings")
   marketplaceBids       MarketplaceBid[] @relation("TransporterBids")
   whiteLabel            WhiteLabelConfig?
@@ -217,6 +221,7 @@ model MarketplaceListing {
   awardedBidId  String?
   expiresAt     DateTime
   bids          MarketplaceBid[]
+  platformTransactions PlatformTransaction[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -235,15 +240,15 @@ model MarketplaceBid {
 }
 
 model PlatformTransaction {
-  id              String    @id @default(uuid())
+  id              String              @id @default(uuid())
   listingId       String
   listing         MarketplaceListing  @relation(fields: [listingId], references: [id])
   bidId           String
   amount          Float
   platformFee     Float
   transporterEarn Float
-  status          String    @default("completed")
-  createdAt       DateTime  @default(now())
+  status          String              @default("completed")
+  createdAt       DateTime            @default(now())
 }
 
 model WhiteLabelConfig {
