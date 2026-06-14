@@ -14,7 +14,8 @@ import { complianceEngine } from '../../services/complianceEngine';
 import { taxCalculator } from '../../services/taxCalculator';
 import { routeOptimizer } from '../../services/routeOptimizer';
 import { cacheService } from '../../services/cache.service';
-import { billingService } from '../../services/billing.service';
+import { billingService } from '../../modules/billing/billing.service';
+import { notificationService } from '../../services/notification.service';
 import { manifestsCreatedCounter } from '../../config/metrics';
 import { AppError } from '../../utils/AppError';
 import logger from '../../config/logger';
@@ -237,7 +238,6 @@ export class ManifestService {
     }
     if (driverId) where.assignedDriverId = driverId;
 
-    // If the user is a driver, only show manifests assigned to them
     if (userId) {
       const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
       if (user?.role === 'driver') {
