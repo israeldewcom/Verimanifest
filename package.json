@@ -80,7 +80,6 @@
     "@opentelemetry/instrumentation-http": "^0.52.0",
     "@opentelemetry/instrumentation-ioredis": "^0.42.0",
     "@opentelemetry/instrumentation-pg": "^0.43.0",
-    "@opentelemetry/instrumentation-bullmq": "^0.4.0",
     "merkle-tree": "^1.0.0",
     "merkletreejs": "^0.3.11",
     "keccak256": "^1.0.6",
