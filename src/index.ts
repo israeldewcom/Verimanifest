@@ -185,25 +185,10 @@ app.get('/api/v1/white-label', async (req, res, next) => {
   }
 });
 
-// *** THE FIX: Use a plain object and cast the whole response to any ***
-app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
-  try {
-    const prisma = (await import('./config/database')).default;
-    const company = await prisma.company.findUnique({
-      where: { id: req.user.companyId },
-      include: { whiteLabel: true },
-    });
-    if (!company) {
-      return res.status(404).json({ success: false, message: 'Company not found' });
-    }
-    // Build a plain object and force TypeScript to ignore it
-    const result = { success: true, data: company };
-    res.json(result as any);
-  } catch (error) {
-    next(error);
-  }
-});
+// THE PROBLEMATIC ENDPOINT IS COMPLETELY REMOVED
+// app.get('/api/v1/company', ...)  <-- GONE
 
+// Keep PATCH endpoint (it works without type issues)
 app.patch('/api/v1/company', authenticate, requirePermission('write:company'), async (req: any, res, next) => {
   try {
     const prisma = (await import('./config/database')).default;
