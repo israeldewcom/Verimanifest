@@ -5,26 +5,20 @@ import helmet from 'helmet';
 import compression from 'compression';
 import http from 'http';
 import responseTime from 'response-time';
-import swaggerUi from 'swagger-ui-express';
 import { environment } from './config/environment';
 import logger from './config/logger';
 import { register, httpRequestDurationMicroseconds } from './config/metrics';
 import { rateLimiter, perUserRateLimiter, authLimiter } from './middleware/rateLimiter';
-import { authenticate } from './middleware/auth';
+import { authenticate, requirePermission } from './middleware/auth';
 import { authenticateApiKey } from './middleware/apiKeyAuth';
 import { healthCheck, readinessCheck, livenessCheck } from './middleware/healthCheck';
 import { errorHandler } from './middleware/errorHandler';
 import { initializeWebSocket } from './websocket/socket.service';
-import { initializeTracing } from './config/tracing';
-import { initializeMonitoring } from './config/monitoring';
 import { vaultService } from './config/vault';
 import { featureFlags } from './config/featureFlags';
 import prisma from './config/database';
 import { whiteLabelService } from './services/whiteLabel.service';
-import { openApiSpec } from './utils/generateOpenAPI';
-
-initializeTracing();
-initializeMonitoring();
+import { cacheService } from './services/cache.service';
 
 import authRoutes from './modules/auth/auth.routes';
 import manifestRoutes from './modules/manifest/manifest.routes';
@@ -96,12 +90,6 @@ app.use(async (req, res, next) => {
   }
   next();
 });
-
-// OpenAPI documentation
-if (environment.NODE_ENV !== 'production') {
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
-  logger.info('OpenAPI docs available at /api-docs');
-}
 
 app.get('/health', healthCheck);
 app.get('/health/ready', readinessCheck);
@@ -195,7 +183,6 @@ app.get('/api/v1/white-label', async (req, res, next) => {
   }
 });
 
-// Company profile endpoints
 app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
   try {
     const company = await prisma.company.findUnique({
