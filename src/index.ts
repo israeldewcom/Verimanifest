@@ -185,7 +185,7 @@ app.get('/api/v1/white-label', async (req, res, next) => {
   }
 });
 
-// **FIXED COMPANY ROUTE – TypeScript error suppressed**
+// **FIXED COMPANY ROUTE – cast to any to avoid TypeScript error**
 app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
   try {
     const prisma = (await import('./config/database')).default;
@@ -196,26 +196,7 @@ app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
     if (!company) {
       return res.status(404).json({ success: false, message: 'Company not found' });
     }
-    let whiteLabel = company.whiteLabel;
-    if (!whiteLabel) {
-      whiteLabel = {
-        id: '',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        companyId: company.id,
-        companyName: company.name,
-        logo: environment.WHITE_LABEL_DEFAULT_LOGO_URL,
-        primaryColor: environment.WHITE_LABEL_DEFAULT_PRIMARY_COLOR,
-        secondaryColor: '#4A5568',
-        customDomain: null,
-        emailTemplates: {},
-      };
-    }
-    // @ts-ignore – TypeScript incorrectly infers missing whiteLabel property
-    res.json({
-      success: true,
-      data: { ...company, whiteLabel }
-    });
+    res.json({ success: true, data: company as any });
   } catch (error) {
     next(error);
   }
