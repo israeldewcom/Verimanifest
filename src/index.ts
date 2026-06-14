@@ -198,7 +198,7 @@ app.get('/api/v1/white-label', async (req, res, next) => {
   }
 });
 
-// Company profile endpoints
+// Company profile endpoints – fixed to handle optional whiteLabel
 app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
   try {
     const prisma = (await import('./config/database')).default;
@@ -206,21 +206,26 @@ app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
       where: { id: req.user.companyId },
       include: { whiteLabel: true },
     });
-    // Ensure whiteLabel exists (create if missing)
-    if (company && !company.whiteLabel) {
-      company.whiteLabel = await prisma.whiteLabelConfig.create({
-        data: {
-          companyId: company.id,
-          companyName: company.name,
-          logo: environment.WHITE_LABEL_DEFAULT_LOGO_URL,
-          primaryColor: environment.WHITE_LABEL_DEFAULT_PRIMARY_COLOR,
-          secondaryColor: '#4A5568',
-          customDomain: null,
-          emailTemplates: {},
-        }
-      });
+    if (!company) {
+      return res.status(404).json({ success: false, message: 'Company not found' });
     }
-    res.json({ success: true, data: company });
+    // Ensure whiteLabel is defined – if null, set a default to satisfy type
+    const companyWithWhiteLabel = {
+      ...company,
+      whiteLabel: company.whiteLabel || {
+        id: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        companyId: company.id,
+        companyName: company.name,
+        logo: environment.WHITE_LABEL_DEFAULT_LOGO_URL,
+        primaryColor: environment.WHITE_LABEL_DEFAULT_PRIMARY_COLOR,
+        secondaryColor: '#4A5568',
+        customDomain: null,
+        emailTemplates: {},
+      }
+    };
+    res.json({ success: true, data: companyWithWhiteLabel });
   } catch (error) {
     next(error);
   }
