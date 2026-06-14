@@ -1,9 +1,9 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Copy package files and install ALL dependencies (including dev)
 COPY package*.json ./
-RUN npm install --production && npm cache clean --force
+RUN npm install
 
 # Copy source and Prisma schema
 COPY . .
@@ -19,11 +19,15 @@ RUN npm run build
 FROM node:20-alpine
 WORKDIR /app
 
-# Copy built artifacts and node_modules
+# Copy built artifacts and production node_modules only
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
+
+# Remove dev dependencies (optional, since we only copied node_modules from builder which includes dev deps)
+# Better: prune dev dependencies now
+RUN npm prune --production
 
 # Generate Prisma Client again (ensures binary compatibility)
 RUN npx prisma generate
