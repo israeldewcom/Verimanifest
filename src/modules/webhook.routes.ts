@@ -7,16 +7,13 @@ import { AppError } from '../../utils/AppError';
 
 const router = Router();
 
-// External webhook receiver – now authenticated via API key or secret
+// External webhook receiver
 router.post('/receive/:companyId', async (req, res, next) => {
   try {
     const companyId = req.params.companyId;
-    const authHeader = req.headers.authorization;
-    // Simple token authentication for external webhooks (can be enhanced)
     const webhookToken = req.headers['x-webhook-token'] as string;
     const company = await prisma.company.findUnique({ where: { id: companyId } });
     if (!company) throw AppError.notFound('Company not found');
-    // For production, store webhook tokens per company
     if (!webhookToken || webhookToken !== process.env.EXTERNAL_WEBHOOK_TOKEN) {
       throw AppError.unauthorized('Invalid webhook token');
     }
