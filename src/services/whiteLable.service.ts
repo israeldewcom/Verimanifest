@@ -1,15 +1,12 @@
 import prisma from '../config/database';
 import { cacheService } from './cache.service';
 import { environment } from '../config/environment';
-import logger from '../config/logger';
 
 export class WhiteLabelService {
   async getConfig(companyId: string) {
     const cacheKey = cacheService.generateKey('whiteLabel', companyId);
     return cacheService.getOrSet(cacheKey, async () => {
-      let config = await prisma.whiteLabelConfig.findUnique({
-        where: { companyId },
-      });
+      let config = await prisma.whiteLabelConfig.findUnique({ where: { companyId } });
       if (!config) {
         config = await prisma.whiteLabelConfig.create({
           data: {
