@@ -11,18 +11,11 @@ schedule.scheduleJob('0 2 * * *', async () => {
   logger.info('Running nightly compliance checks');
   try {
     const manifests = await prisma.manifest.findMany({
-      where: {
-        status: { notIn: ['archived', 'disposed'] },
-      },
+      where: { status: { notIn: ['archived', 'disposed'] } },
       select: { id: true },
     });
-
-    const results = await complianceEngine.batchValidateManifests(
-      manifests.map((m) => m.id)
-    );
-    logger.info('Nightly compliance checks completed', {
-      totalChecked: Object.keys(results).length,
-    });
+    const results = await complianceEngine.batchValidateManifests(manifests.map(m => m.id));
+    logger.info('Nightly compliance checks completed', { totalChecked: Object.keys(results).length });
   } catch (error) {
     logger.error('Nightly compliance checks failed', { error });
   }
@@ -46,10 +39,7 @@ schedule.scheduleJob('0 3 * * *', async () => {
   logger.info('Cleaning expired refresh tokens');
   try {
     const result = await prisma.refreshToken.updateMany({
-      where: {
-        expiresAt: { lt: new Date() },
-        revoked: false,
-      },
+      where: { expiresAt: { lt: new Date() }, revoked: false },
       data: { revoked: true },
     });
     logger.info(`Revoked ${result.count} expired refresh tokens`);
