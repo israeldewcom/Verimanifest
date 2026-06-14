@@ -1,4 +1,4 @@
-import { emailQueue, smsQueue, pushNotificationQueue } from '../config/queue';
+import { emailQueue, smsQueue } from '../config/queue';
 import prisma from '../config/database';
 import logger from '../config/logger';
 
