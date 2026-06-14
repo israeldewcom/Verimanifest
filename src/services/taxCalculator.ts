@@ -3,7 +3,7 @@ import { cacheService } from './cache.service';
 import logger from '../config/logger';
 import { AppError } from '../utils/AppError';
 
-interface TaxCalculationInput {
+export interface TaxCalculationInput {
   amount: number;
   fromState: string;
   toState: string;
@@ -11,7 +11,7 @@ interface TaxCalculationInput {
   wasteClassification: string;
 }
 
-interface TaxCalculationResult {
+export interface TaxCalculationResult {
   subtotal: number;
   taxAmount: number;
   total: number;
@@ -72,7 +72,7 @@ class TaxCalculator {
   }
 
   private async calculateAvalaraTax(input: TaxCalculationInput): Promise<TaxCalculationResult> {
-    const Avalara = require('@avaldax/avatax');
+    const Avalara = require('avatax');
     const client = new Avalara({
       accountId: environment.AVALARA_ACCOUNT_ID,
       licenseKey: environment.AVALARA_LICENSE_KEY,
