@@ -29,7 +29,6 @@ import { featureFlags } from './config/featureFlags';
 import { whiteLabelService } from './services/whiteLabel.service';
 import { cacheService } from './services/cache.service';
 
-// Mock vault service (replace with real import when vault is configured)
 const vaultService = {
   async initialize() { logger.info('Vault mock initialized'); },
   async rotateDatabaseCredentials() { logger.info('Vault mock: credential rotation skipped'); }
@@ -40,7 +39,6 @@ const server = http.createServer(app);
 
 initializeWebSocket(server);
 
-// CORS
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
 if (environment.NODE_ENV === 'production' && allowedOrigins.length === 0) {
   logger.warn('ALLOWED_ORIGINS not set in production, CORS will be restrictive');
@@ -58,7 +56,6 @@ app.use(
   })
 );
 
-// Security
 app.use(
   helmet({
     contentSecurityPolicy: false,
@@ -67,14 +64,11 @@ app.use(
 );
 app.use(compression());
 
-// Raw body for Stripe webhooks
 app.use('/api/v1/billing/webhooks', express.raw({ type: 'application/json' }));
 
-// Parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Response time metrics
 app.use(
   responseTime((req: any, res: any, time: number) => {
     if (req.path && !req.path.startsWith('/metrics') && !req.path.startsWith('/health')) {
@@ -86,7 +80,6 @@ app.use(
   })
 );
 
-// White‑label middleware (injects company branding)
 app.use(async (req, res, next) => {
   const host = req.hostname;
   let company = await whiteLabelService.getCompanyByDomain(host);
@@ -101,7 +94,6 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// Health and metrics
 app.get('/health', healthCheck);
 app.get('/health/ready', readinessCheck);
 app.get('/health/live', livenessCheck);
@@ -110,10 +102,8 @@ app.get('/metrics', async (req, res) => {
   res.end(await register.metrics());
 });
 
-// Global rate limiting
 app.use('/api/', rateLimiter);
 
-// API routes
 app.use('/api/v1/auth', authLimiter, authRoutes);
 app.use('/api/v1/billing', billingRoutes);
 app.use('/api/v1/webhooks', webhookRoutes);
@@ -121,7 +111,6 @@ app.use('/api/v1/manifests', authenticate, perUserRateLimiter, manifestRoutes);
 app.use('/api/v1/marketplace', authenticate, perUserRateLimiter, marketplaceRoutes);
 app.use('/api/v1/api-keys', authenticate, requirePermission('manage:api'), apiKeyRoutes);
 
-// Public API endpoints with API key authentication
 app.post('/api/v1/sync', authenticateApiKey, async (req, res, next) => {
   try {
     const { syncService } = await import('./services/sync.service');
@@ -162,7 +151,6 @@ app.get('/api/v1/drivers/:driverId/location', authenticateApiKey, async (req, re
   }
 });
 
-// GDPR endpoints
 app.get('/api/v1/user/data', authenticate, async (req: any, res, next) => {
   try {
     const { gdprService } = await import('./services/gdpr.service');
@@ -183,7 +171,6 @@ app.delete('/api/v1/user/data', authenticate, async (req: any, res, next) => {
   }
 });
 
-// White‑label configuration
 app.get('/api/v1/white-label', async (req, res, next) => {
   try {
     const config = res.locals.whiteLabel || {
@@ -198,7 +185,7 @@ app.get('/api/v1/white-label', async (req, res, next) => {
   }
 });
 
-// Company profile endpoints – fixed to handle optional whiteLabel
+// **FIXED COMPANY ROUTE – avoids TypeScript strict type error**
 app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
   try {
     const prisma = (await import('./config/database')).default;
@@ -209,10 +196,10 @@ app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
     if (!company) {
       return res.status(404).json({ success: false, message: 'Company not found' });
     }
-    // Ensure whiteLabel is defined – if null, set a default to satisfy type
-    const companyWithWhiteLabel = {
-      ...company,
-      whiteLabel: company.whiteLabel || {
+    // Ensure whiteLabel exists – create a default if not present
+    let whiteLabel = company.whiteLabel;
+    if (!whiteLabel) {
+      whiteLabel = {
         id: '',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -223,9 +210,16 @@ app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
         secondaryColor: '#4A5568',
         customDomain: null,
         emailTemplates: {},
+      };
+    }
+    // Return a plain object to avoid TypeScript type mismatches
+    res.json({
+      success: true,
+      data: {
+        ...company,
+        whiteLabel,
       }
-    };
-    res.json({ success: true, data: companyWithWhiteLabel });
+    });
   } catch (error) {
     next(error);
   }
@@ -245,15 +239,12 @@ app.patch('/api/v1/company', authenticate, requirePermission('write:company'), a
   }
 });
 
-// 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 
-// Global error handler
 app.use(errorHandler);
 
-// Initialize optional services
 async function initializeServices() {
   try {
     await vaultService.initialize();
@@ -265,14 +256,12 @@ async function initializeServices() {
   }
 }
 
-// Start server
 server.listen(environment.PORT, async () => {
   await initializeServices();
   logger.info(`🚀 VeriManifest API running on port ${environment.PORT}`);
   logger.info(`📊 Environment: ${environment.NODE_ENV}`);
 });
 
-// Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully...');
   server.close(() => {
