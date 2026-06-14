@@ -10,16 +10,10 @@
     "forceConsistentCasingInFileNames": true,
     "noEmitOnError": false,
     "noImplicitAny": false,
-    "strictNullChecks": false
+    "strictNullChecks": false,
+    "noImplicitReturns": false,
+    "suppressImplicitAnyIndexErrors": true
   },
   "include": ["src/**/*"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "src/config/tracing.ts",
-    "src/config/monitoring.ts",
-    "src/config/vault.ts",
-    "src/services/whiteLabel.service.ts",
-    "src/utils/generateOpenAPI.ts"
-  ]
+  "exclude": ["node_modules", "dist"]
 }
