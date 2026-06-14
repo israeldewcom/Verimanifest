@@ -64,12 +64,7 @@ new Worker(
       await webhookManager.sendWebhookDelivery(job.data);
     }
   },
-  {
-    connection: redis,
-    attempts: 5,
-    backoff: { type: 'exponential', delay: 1000 },
-    concurrency: 10,
-  }
+  { connection: redis, attempts: 5, backoff: { type: 'exponential', delay: 1000 }, concurrency: 10 }
 );
 
 new Worker(
@@ -132,7 +127,6 @@ new Worker(
 new Worker(
   'location-updates',
   async (job) => {
-    // Process location update (geofencing, ETA calculation)
     logger.debug('Processing location update', { data: job.data });
   },
   { connection: redis }
@@ -161,7 +155,8 @@ setInterval(async () => {
       'location-updates', 'offline-sync',
     ];
     for (const queueName of queues) {
-      const queue = new (require('bullmq').Queue)(queueName, { connection: redis });
+      const { Queue } = require('bullmq');
+      const queue = new Queue(queueName, { connection: redis });
       const [waiting, active, completed, failed] = await Promise.all([
         queue.getWaitingCount(),
         queue.getActiveCount(),
