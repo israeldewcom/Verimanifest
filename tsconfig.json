@@ -18,6 +18,7 @@
     "src/config/tracing.ts",
     "src/config/monitoring.ts",
     "src/config/vault.ts",
+    "src/services/whiteLabel.service.ts",
     "src/utils/generateOpenAPI.ts"
   ]
 }
