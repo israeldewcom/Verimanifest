@@ -3,7 +3,6 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import prisma from '../../config/database';
 import { environment } from '../../config/environment';
-import { v4 as uuidv4 } from 'uuid';
 import { emailQueue } from '../../config/queue';
 import { cacheService } from '../../services/cache.service';
 import { AppError } from '../../utils/AppError';
@@ -323,6 +322,16 @@ export class AuthService {
     });
     await prisma.refreshToken.updateMany({ where: { userId }, data: { revoked: true } });
     logger.info('User deactivated', { userId, companyId });
+  }
+
+  // Added getUser method for auth.controller.ts 'me' endpoint
+  async getUser(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { company: true },
+    });
+    if (!user) throw AppError.notFound('User not found');
+    return this.sanitizeUser(user);
   }
 
   private generateTokens(userId: string, companyId: string, role: string) {
