@@ -7,7 +7,7 @@ import logger from '../config/logger';
 import { environment } from '../config/environment';
 import { addDays, differenceInDays } from 'date-fns';
 
-interface ComplianceResult {
+export interface ComplianceResult {
   compliant: boolean;
   violations: string[];
   warnings: string[];
