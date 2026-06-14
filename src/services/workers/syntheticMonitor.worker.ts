@@ -9,7 +9,6 @@ async function run() {
     } else {
       logger.info('Initial synthetic health check passed');
     }
-
     await syntheticMonitor.runCriticalPathTest();
   } catch (error) {
     logger.error('Synthetic monitor startup failed', { error });
