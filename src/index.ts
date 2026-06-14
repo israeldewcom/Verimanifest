@@ -185,7 +185,7 @@ app.get('/api/v1/white-label', async (req, res, next) => {
   }
 });
 
-// **FIXED COMPANY ROUTE – avoids TypeScript strict type error**
+// **CRITICAL FIX: Company route with type assertion**
 app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
   try {
     const prisma = (await import('./config/database')).default;
@@ -196,7 +196,6 @@ app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
     if (!company) {
       return res.status(404).json({ success: false, message: 'Company not found' });
     }
-    // Ensure whiteLabel exists – create a default if not present
     let whiteLabel = company.whiteLabel;
     if (!whiteLabel) {
       whiteLabel = {
@@ -212,13 +211,10 @@ app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
         emailTemplates: {},
       };
     }
-    // Return a plain object to avoid TypeScript type mismatches
+    // Use type assertion to bypass strict TypeScript checking
     res.json({
       success: true,
-      data: {
-        ...company,
-        whiteLabel,
-      }
+      data: { ...company, whiteLabel } as any
     });
   } catch (error) {
     next(error);
