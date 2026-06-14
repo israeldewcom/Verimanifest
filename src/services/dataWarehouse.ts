@@ -42,12 +42,13 @@ class DataWarehouse {
       return [];
     }
 
+    // Use type assertion to avoid union call signature issues
     const tables = [
-      { name: 'User', query: prisma.user.findMany },
-      { name: 'Company', query: prisma.company.findMany },
-      { name: 'Manifest', query: prisma.manifest.findMany },
-      { name: 'Signature', query: prisma.signature.findMany },
-      { name: 'ComplianceCheck', query: prisma.complianceCheck.findMany },
+      { name: 'User', query: () => prisma.user.findMany() },
+      { name: 'Company', query: () => prisma.company.findMany() },
+      { name: 'Manifest', query: () => prisma.manifest.findMany() },
+      { name: 'Signature', query: () => prisma.signature.findMany() },
+      { name: 'ComplianceCheck', query: () => prisma.complianceCheck.findMany() },
     ];
     const results: any[] = [];
 
