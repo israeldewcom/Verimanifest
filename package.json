@@ -11,7 +11,6 @@
     "test:watch": "jest --watch",
     "test:e2e": "jest --config jest.e2e.config.js --forceExit",
     "test:contract": "jest --config jest.contract.config.js",
-    "test:load": "k6 run tests/load/scenarios.js",
     "migrate": "prisma migrate deploy",
     "migrate:dev": "prisma migrate dev",
     "migrate:status": "prisma migrate status",
@@ -24,8 +23,7 @@
     "format": "prettier --write 'src/**/*.ts'",
     "generate:docs": "ts-node src/utils/generateOpenAPI.ts",
     "generate:clients": "openapi-generator-cli generate -i openapi.json -g typescript-axios -o clients/typescript",
-    "security:audit": "npm audit --audit-level=high",
-    "security:scan": "snyk test"
+    "security:audit": "npm audit --audit-level=high"
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",
@@ -89,8 +87,6 @@
     "compromise": "^14.13.0",
     "avatax": "^23.11.0",
     "taxjar": "^4.0.1",
-    "graphhopper-js-api-client": "^1.0.5",
-    "osrm": "^5.26.0",
     "launchdarkly-node-server-sdk": "^7.0.0",
     "unleash-client": "^5.5.0",
     "node-vault": "^0.10.2",
@@ -168,7 +164,6 @@
     "prettier": "^3.3.2",
     "faker": "^6.6.6",
     "dotenv-cli": "^7.4.2",
-    "k6": "^0.0.0",
     "artillery": "^2.0.20",
     "pact": "^12.1.3",
     "@pact-foundation/pact": "^12.5.1",
