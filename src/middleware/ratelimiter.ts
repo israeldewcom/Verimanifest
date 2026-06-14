@@ -20,16 +20,16 @@ async function getMaxForCompany(companyId: string): Promise<number> {
   
   switch (plan) {
     case 'free': return environment.RATE_LIMIT_MAX_FREE;
-    case 'starter': return environment.RATE_LIMIT_MAX_STARTER;
-    case 'professional': return environment.RATE_LIMIT_MAX_PROFESSIONAL;
-    case 'enterprise': return environment.RATE_LIMIT_MAX_ENTERPRISE;
+    case 'starter': return 200;
+    case 'professional': return 1000;
+    case 'enterprise': return 5000;
     default: return environment.RATE_LIMIT_MAX_FREE;
   }
 }
 
 export const rateLimiter = rateLimit({
   store: new RedisStore({
-    sendCommand: (...args: string[]) => redis.call(...args) as any,
+    sendCommand: (...args: string[]) => redis.call(args[0], ...args.slice(1)) as any,
   }),
   windowMs: environment.RATE_LIMIT_WINDOW_MS,
   max: async (req: Request) => {
@@ -40,24 +40,22 @@ export const rateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many requests, please try again later.' },
-  keyGenerator: (req) => {
-    return (req as any).user?.companyId || req.ip || 'unknown';
-  },
+  keyGenerator: (req) => (req as any).user?.companyId || req.ip || 'unknown',
 });
 
 export const perUserRateLimiter = rateLimit({
   store: new RedisStore({
-    sendCommand: (...args: string[]) => redis.call(...args) as any,
+    sendCommand: (...args: string[]) => redis.call(args[0], ...args.slice(1)) as any,
   }),
   windowMs: environment.RATE_LIMIT_WINDOW_MS,
-  max: 100, // per user default
+  max: 100,
   keyGenerator: (req) => (req as any).user?.userId || req.ip || 'unknown',
   message: { success: false, message: 'User rate limit exceeded.' },
 });
 
 export const authLimiter = rateLimit({
   store: new RedisStore({
-    sendCommand: (...args: string[]) => redis.call(...args) as any,
+    sendCommand: (...args: string[]) => redis.call(args[0], ...args.slice(1)) as any,
   }),
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -67,7 +65,7 @@ export const authLimiter = rateLimit({
 
 export const webhookLimiter = rateLimit({
   store: new RedisStore({
-    sendCommand: (...args: string[]) => redis.call(...args) as any,
+    sendCommand: (...args: string[]) => redis.call(args[0], ...args.slice(1)) as any,
   }),
   windowMs: 60 * 1000,
   max: 500,
