@@ -1,5 +1,4 @@
 import { Worker } from 'bullmq';
-import redis from '../config/redis';
 import { ManifestService } from '../modules/manifest/manifest.service';
 import { pdfService } from '../services/pdf.service';
 import { emailService } from '../services/email.service';
@@ -14,6 +13,12 @@ import { queueJobsGauge } from '../config/metrics';
 import prisma from '../config/database';
 import logger from '../config/logger';
 
+// Use a plain connection object to avoid ioredis type conflicts with BullMQ
+const redisConnection = {
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+};
+
 const manifestService = new ManifestService();
 
 new Worker(
@@ -22,7 +27,7 @@ new Worker(
     logger.info(`Processing manifest job: ${job.name}`, { jobId: job.id });
     queueJobsGauge.set({ queue: 'manifest-processing', status: 'processing' }, 1);
   },
-  { connection: redis }
+  { connection: redisConnection }
 );
 
 new Worker(
@@ -34,7 +39,7 @@ new Worker(
       logger.info(`PDF generated for manifest ${manifestId}`);
     }
   },
-  { connection: redis }
+  { connection: redisConnection }
 );
 
 new Worker(
@@ -44,7 +49,7 @@ new Worker(
       await notificationService.send(job.data.userId, job.data.type, job.data.data);
     }
   },
-  { connection: redis }
+  { connection: redisConnection }
 );
 
 new Worker(
@@ -54,7 +59,7 @@ new Worker(
       await emailService.send(job.data);
     }
   },
-  { connection: redis, concurrency: 5 }
+  { connection: redisConnection, concurrency: 5 }
 );
 
 new Worker(
@@ -64,7 +69,7 @@ new Worker(
       await webhookManager.sendWebhookDelivery(job.data);
     }
   },
-  { connection: redis, attempts: 5, backoff: { type: 'exponential', delay: 1000 }, concurrency: 10 }
+  { connection: redisConnection, concurrency: 10 }
 );
 
 new Worker(
@@ -82,7 +87,7 @@ new Worker(
       }
     }
   },
-  { connection: redis }
+  { connection: redisConnection }
 );
 
 new Worker(
@@ -92,15 +97,15 @@ new Worker(
       await complianceEngine.validateManifest(job.data.manifestId);
     }
   },
-  { connection: redis }
+  { connection: redisConnection }
 );
 
 new Worker(
   'data-warehouse',
-  async (job) => {
+  async () => {
     await dataWarehouse.syncToWarehouse();
   },
-  { connection: redis }
+  { connection: redisConnection }
 );
 
 new Worker(
@@ -121,7 +126,7 @@ new Worker(
       }
     }
   },
-  { connection: redis }
+  { connection: redisConnection }
 );
 
 new Worker(
@@ -129,7 +134,7 @@ new Worker(
   async (job) => {
     logger.debug('Processing location update', { data: job.data });
   },
-  { connection: redis }
+  { connection: redisConnection }
 );
 
 new Worker(
@@ -142,7 +147,7 @@ new Worker(
       return results;
     }
   },
-  { connection: redis }
+  { connection: redisConnection }
 );
 
 logger.info('All queue workers started');
@@ -156,7 +161,7 @@ setInterval(async () => {
     ];
     for (const queueName of queues) {
       const { Queue } = require('bullmq');
-      const queue = new Queue(queueName, { connection: redis });
+      const queue = new Queue(queueName, { connection: redisConnection });
       const [waiting, active, completed, failed] = await Promise.all([
         queue.getWaitingCount(),
         queue.getActiveCount(),
