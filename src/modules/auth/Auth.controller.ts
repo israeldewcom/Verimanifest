@@ -17,12 +17,7 @@ export class AuthController {
   async login(req: Request, res: Response, next: NextFunction) {
     try {
       const { email, password } = req.body;
-      const result = await authService.login(
-        email,
-        password,
-        req.ip,
-        req.headers['user-agent']
-      );
+      const result = await authService.login(email, password, req.ip, req.headers['user-agent']);
       res.json({ success: true, data: result });
     } catch (error) {
       next(error);
@@ -64,9 +59,7 @@ export class AuthController {
         where: { id: req.user!.userId },
         include: { company: true },
       });
-      if (!user) {
-        throw AppError.notFound('User not found');
-      }
+      if (!user) throw AppError.notFound('User not found');
       const { password, passwordResetToken, passwordResetExpiry, ...rest } = user;
       res.json({ success: true, data: rest });
     } catch (error) {
@@ -78,10 +71,7 @@ export class AuthController {
     try {
       const { email } = req.body;
       await authService.forgotPassword(email);
-      res.json({
-        success: true,
-        message: 'If the email exists, a reset link has been sent',
-      });
+      res.json({ success: true, message: 'If the email exists, a reset link has been sent' });
     } catch (error) {
       next(error);
     }
