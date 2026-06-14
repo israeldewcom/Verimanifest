@@ -61,7 +61,8 @@ export const environment = {
   WHITE_LABEL_DEFAULT_PRIMARY_COLOR: '#2D3748',
   APP_URL: process.env.APP_URL || 'http://localhost:3001',
   
-  // Blockchain / optional keys
+  USAGE_PRICE_ID_MANIFEST: process.env.USAGE_PRICE_ID_MANIFEST || '',
+  
   ETHEREUM_RPC_URL: process.env.ETHEREUM_RPC_URL || '',
   ETHEREUM_PRIVATE_KEY: process.env.ETHEREUM_PRIVATE_KEY || '',
   MANIFEST_VERIFICATION_CONTRACT: process.env.MANIFEST_VERIFICATION_CONTRACT || '',
