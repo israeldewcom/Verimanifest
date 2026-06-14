@@ -83,27 +83,32 @@ class EventStore {
     };
 
     for (const event of events) {
+      const eventData = event.data as any; // Cast to any to access properties
       switch (event.type) {
         case 'MANIFEST_CREATED':
-          Object.assign(state, event.data);
+          Object.assign(state, eventData);
           break;
         case 'STATUS_CHANGED':
-          state.status = event.data.newStatus;
+          state.status = eventData.newStatus;
           state.statusUpdatedAt = event.timestamp;
-          state.statusHistory.push({ oldStatus: event.data.oldStatus, newStatus: event.data.newStatus, timestamp: event.timestamp });
+          state.statusHistory.push({ 
+            oldStatus: eventData.oldStatus, 
+            newStatus: eventData.newStatus, 
+            timestamp: event.timestamp 
+          });
           break;
         case 'SIGNATURE_ADDED':
-          state.signatures.push(event.data);
+          state.signatures.push(eventData);
           break;
         case 'PHOTO_UPLOADED':
-          state.photos.push(event.data);
+          state.photos.push(eventData);
           break;
         case 'COMPLIANCE_CHECKED':
-          state.complianceChecks.push(event.data);
+          state.complianceChecks.push(eventData);
           break;
         case 'LEGAL_HOLD_APPLIED':
           state.legalHold = true;
-          state.legalHoldReason = event.data.reason;
+          state.legalHoldReason = eventData.reason;
           state.legalHoldPlacedAt = event.timestamp;
           break;
         case 'LEGAL_HOLD_RELEASED':
@@ -111,7 +116,7 @@ class EventStore {
           state.legalHoldReleasedAt = event.timestamp;
           break;
         case 'DRIVER_ASSIGNED':
-          state.assignedDriverId = event.data.driverId;
+          state.assignedDriverId = eventData.driverId;
           state.assignedAt = event.timestamp;
           break;
       }
