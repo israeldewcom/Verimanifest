@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "jest --coverage --forceExit --detectOpenHandles",
+    "test:watch": "jest --watch",
     "migrate": "prisma migrate deploy",
     "migrate:dev": "prisma migrate dev",
     "seed": "ts-node src/database/seed.ts",
