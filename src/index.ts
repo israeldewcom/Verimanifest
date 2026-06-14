@@ -185,7 +185,7 @@ app.get('/api/v1/white-label', async (req, res, next) => {
   }
 });
 
-// **FIXED COMPANY ROUTE – cast to any to avoid TypeScript error**
+// *** THE FIX: Use a plain object and cast the whole response to any ***
 app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
   try {
     const prisma = (await import('./config/database')).default;
@@ -196,7 +196,9 @@ app.get('/api/v1/company', authenticate, async (req: any, res, next) => {
     if (!company) {
       return res.status(404).json({ success: false, message: 'Company not found' });
     }
-    res.json({ success: true, data: company as any });
+    // Build a plain object and force TypeScript to ignore it
+    const result = { success: true, data: company };
+    res.json(result as any);
   } catch (error) {
     next(error);
   }
