@@ -25,7 +25,6 @@ router.get('/me', authenticate, controller.me);
 router.put('/change-password', authenticate, validate(changePasswordSchema), controller.changePassword);
 router.post('/logout', authenticate, controller.logout);
 
-// User management (requires manage:users permission)
 router.post('/invite', authenticate, requirePermission('manage:users'), validate(inviteUserSchema), controller.inviteUser);
 router.get('/users', authenticate, requirePermission('manage:users'), controller.listUsers);
 router.put('/users/:id', authenticate, requirePermission('manage:users'), controller.updateUser);
