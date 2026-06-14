@@ -51,7 +51,7 @@ export class PdfService {
 
     await upload.done();
 
-    const pdfRecord = await prisma.manifestPDF.create({
+    await prisma.manifestPDF.create({
       data: {
         manifestId,
         s3Key,
@@ -79,7 +79,7 @@ export class PdfService {
   private buildPDFContent(doc: PDFKit.PDFDocument, manifest: any) {
     doc.fontSize(18).text('UNIFORM HAZARDOUS WASTE MANIFEST', { align: 'center' });
     doc.moveDown(0.5);
-    doc.fontSize(12).text(`EPA Form 8700-22`, { align: 'center' });
+    doc.fontSize(12).text('EPA Form 8700-22', { align: 'center' });
     doc.moveDown(0.5);
     doc.fontSize(10).text(`Manifest Tracking Number: ${manifest.manifestNumber}`, { align: 'center' });
     doc.fontSize(10).text(`Status: ${manifest.status.replace(/_/g, ' ').toUpperCase()}`, { align: 'center' });
@@ -157,9 +157,10 @@ export class PdfService {
       doc.moveDown();
     }
 
-    doc.fontSize(8).text(
+    // Fixed: removed 'color' option which is invalid in PDFKit
+    doc.fontSize(8).fillColor('grey').text(
       `Generated on ${new Date().toISOString()} by VeriManifest System`,
-      { align: 'center', color: 'grey' }
+      { align: 'center' }
     );
   }
 
