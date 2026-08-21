@@ -1,5 +1,6 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
+RUN apk add --no-cache openssl
 
 # Copy package files and install ALL dependencies (including dev)
 COPY package*.json ./
@@ -18,6 +19,7 @@ RUN npm run build
 # Production stage
 FROM node:20-alpine
 WORKDIR /app
+RUN apk add --no-cache openssl
 
 # Copy built artifacts and production node_modules only
 COPY --from=builder /app/node_modules ./node_modules
