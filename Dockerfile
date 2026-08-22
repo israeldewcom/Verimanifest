@@ -26,6 +26,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
+COPY start.sh ./start.sh
 
 # Remove dev dependencies (optional, since we only copied node_modules from builder which includes dev deps)
 # Better: prune dev dependencies now
@@ -34,7 +35,9 @@ RUN npm prune --production
 # Generate Prisma Client again (ensures binary compatibility)
 RUN npx prisma generate
 
+RUN chmod +x ./start.sh
+
 ENV NODE_ENV=production
 EXPOSE 3000
 
-CMD ["node", "dist/index.js"]
+CMD ["./start.sh"]
