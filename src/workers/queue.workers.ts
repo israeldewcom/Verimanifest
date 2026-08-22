@@ -14,10 +14,24 @@ import prisma from '../config/database';
 import logger from '../config/logger';
 
 // Use a plain connection object to avoid ioredis type conflicts with BullMQ
-const redisConnection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
-};
+function parseRedisConnection() {
+  if (process.env.REDIS_URL) {
+    const url = new URL(process.env.REDIS_URL);
+    return {
+      host: url.hostname,
+      port: parseInt(url.port, 10) || 6379,
+      username: url.username || undefined,
+      password: url.password || undefined,
+      tls: url.protocol === 'rediss:' ? {} : undefined,
+    };
+  }
+  return {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+  };
+}
+
+const redisConnection = parseRedisConnection();
 
 const manifestService = new ManifestService();
 
