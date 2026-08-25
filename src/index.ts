@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import http from 'http';
+import path from 'path';
 import responseTime from 'response-time';
 import { environment } from './config/environment';
 import logger from './config/logger';
@@ -40,19 +41,12 @@ const server = http.createServer(app);
 
 initializeWebSocket(server);
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
-if (environment.NODE_ENV === 'production' && allowedOrigins.length === 0) {
-  logger.warn('ALLOWED_ORIGINS not set in production, CORS will be restrictive');
-}
+// TEMPORARY: allow all origins for demo purposes.
+// Before onboarding real customers, replace this with the strict
+// ALLOWED_ORIGINS allow-list version.
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin) || environment.NODE_ENV !== 'production') {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
+    origin: true,
     credentials: true,
   })
 );
@@ -179,7 +173,6 @@ app.get('/api/v1/white-label', async (req, res, next) => {
   }
 });
 
-// ***** FIX: Both endpoints now ignore TypeScript thanks to // @ts-nocheck *****
 app.get('/api/v1/company', authenticate, async (req, res, next) => {
   try {
     const prisma = (await import('./config/database')).default;
@@ -207,6 +200,8 @@ app.patch('/api/v1/company', authenticate, requirePermission('write:company'), a
     next(error);
   }
 });
+
+app.use(express.static(path.join(__dirname, '../public')));
 
 app.use('*', (req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
